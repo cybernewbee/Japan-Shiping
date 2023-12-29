@@ -1,0 +1,137 @@
+---
+title: "Japan Multi Modal Granger Causality Test"
+author: "Marvin Wen Li"
+date: "2022-04-20"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+
+This is a vector autoregressive (VAR) model is used to assess Granger causality. The model uses multiple indicators provided by Bank of Japan. 
+
+VAR regression involves running a series of regressions of the first-differences of a dependent variable on lagged first differences of other explanatory variables along with lagged values of the dependent variable. In each regression, a different dependent variable is used so through these series of regressions causal direction can be examined. 
+
+## Variables
+
+Inco = inland coastal Freight
+Ocean = Ocean Freight
+Rail = Railroad 
+Air = Air Freight
+Road = Trucking
+BDI = Baltic Dry Bulk Index 
+
+## loading library
+
+```{r}
+library(bruceR)
+library(tseries)
+library(rtweet)
+library(vars)
+library(mFilter)
+library(tseries)
+library(TSstudio)
+library(forecast)
+library(tidyverse)
+library(dplyr)
+library(hablar)
+library(readxl)
+```
+
+## Loading data set
+
+Data set is relatively small and has been cleaned 
+
+```{r }
+Japan_BOJ <- read_excel("/Users/marvinlee/Desktop/Research/Japan BOJ.xlsx")
+View(Japan_BOJ)
+```
+
+## created time series
+
+```{r }
+INCO <- ts(Japan_BOJ[,6], start=c(1999,7), frequency = 12)
+Ocean <- ts(Japan_BOJ[,3], start=c(1999,7), frequency = 12)
+Rail <- ts(Japan_BOJ[,12], start=c(1999,7), frequency = 12)
+Air <- ts(Japan_BOJ[,9], start=c(1999,7), frequency = 12)
+BDI <- ts(Japan_BOJ[,21], start=c(1999,7), frequency = 12)
+Road <- ts(Japan_BOJ[,13], start=c(1999,7), frequency = 12)
+```
+
+## Plotting
+
+```{r }
+autoplot(INCO)
+autoplot(Ocean)
+autoplot(Rail)
+autoplot(Air)
+autoplot(BDI)
+autoplot(Road)
+```
+
+## stationary test level
+
+```{r }
+adf.test(log(INCO))
+adf.test(log(Ocean))
+adf.test(log(Rail))
+adf.test(log(Air))
+adf.test(log(BDI))
+adf.test(log(Road))
+```
+
+## first differences
+
+```{r }
+d_lninco <- diff(log(INCO))
+d_lnocean <-diff(log(Ocean))
+d_lnrail <-diff(log(Rail))
+d_lnair <-diff(log(Air))
+d_lnbdi <-diff(log(BDI))
+d_lnroad <-diff(log(Road))
+```
+
+
+## stationary test after first diff 
+
+```{r }
+adf.test(d_lninco)
+adf.test(d_lnocean)
+adf.test(d_lnrail)
+adf.test(d_lnair)
+adf.test(d_lnbdi)
+adf.test(d_lnroad)
+```
+
+## built VAR model
+
+
+```{r }
+var_all <- cbind(d_lninco, d_lnocean, d_lnrail, d_lnair, d_lnbdi, d_lnroad)
+```
+
+## lag selection for all variables; AIC
+```{r }
+lagselect_all <- VARselect(var_all, lag.max = 15, type = "const")
+lagselect_all$selection
+```
+
+## var all
+```{r }
+model_all <- VAR(var_all, p = 3) 
+summary(model_all)
+```
+
+## Granger analysis; one to all
+
+```{r }
+granger_causality(model_all)
+```
+
+
+
